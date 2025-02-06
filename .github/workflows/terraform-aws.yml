@@ -22,7 +22,6 @@ permissions:  # added using https://github.com/step-security/secure-workflows
 jobs:
 
   infracost:
-    environment: ${{ github.event.inputs.environment }}
     permissions:
       contents: write
       pull-requests: write
