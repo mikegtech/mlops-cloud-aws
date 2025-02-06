@@ -28,7 +28,7 @@ jobs:
     uses: mikegtech/reusable-workflows-modules/.github/workflows/terraform-infracost.yml@main
     with:
       # need to specify working-directory as that's where the terraform files live in the source code
-      working-directory: ./terraform
+      working-directory: ./infra/terraform
       terraform-var-file: ./.env/${{ github.event.inputs.environment || 'dev' }}/terraform.tfvars
       usage-file: ./.env/${{ github.event.inputs.environment || 'dev' }}/infracost-usage.yml
       infracost-flag: true # flag whether or not to run infracost analysis
@@ -42,5 +42,5 @@ jobs:
     uses: mikegtech/reusable-workflows-modules/.github/workflows/terraform.yml@main
     with:
       # need to specify working-directory as that's where the terraform files live in the source code
-      working-directory: ./terraform
+      working-directory: ./infra/terraform
     secrets: inherit
