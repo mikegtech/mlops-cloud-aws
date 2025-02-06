@@ -124,7 +124,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/
@@ -171,6 +170,4 @@ build
 dist
 *.egg-info
 .mypy_cache
-*env
-*.env
 *cache*
