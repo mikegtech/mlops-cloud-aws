@@ -18,7 +18,7 @@ jobs:
       id-token: write  # need this for OIDC
       contents: read   # This is required for actions/checkout
     uses: mikegtech/reusable-workflows-modules/.github/workflows/terraform-no-remote-state.yml@main
-    with:
+    # with:
       # need to specify working-directory as that's where the terraform files live in the source code
-      working-directory: ./terraform/stacks/account-level-resources/remote-state
+    #  working-directory: ./terraform/stacks/account-level-resources/remote-state
     secrets: inherit
