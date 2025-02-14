@@ -306,7 +306,7 @@ module "ecr" {
 
   repository_read_write_access_arns = [
     module.ecs.services["mlops"].task_exec_iam_role_arn,
-    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/github-actions-role"
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/GitActionSTSRole"
   ]
   repository_lifecycle_policy = jsonencode({
     rules = [
