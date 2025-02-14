@@ -199,7 +199,7 @@ module "ecs" {
   }
 
   services = {
-    rags = {
+    mlops = {
       cpu    = var.task_cpu
       memory = var.task_memory
 
@@ -217,7 +217,7 @@ module "ecs" {
           memory_reservation = 50
         }
 
-        rags = {
+        mlops = {
           cpu       = var.container_cpu
           memory    = var.container_memory
           essential = true
@@ -302,10 +302,10 @@ module "ecs" {
 module "ecr" {
   source = "terraform-aws-modules/ecr/aws"
 
-  repository_name = "rags"
+  repository_name = "mlops"
 
   repository_read_write_access_arns = [
-    module.ecs.services["rags"].task_exec_iam_role_arn,
+    module.ecs.services["mlops"].task_exec_iam_role_arn,
     "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/github-actions-role"
   ]
   repository_lifecycle_policy = jsonencode({
