@@ -13,6 +13,11 @@ on:
         required: true
         type: boolean
         default: false
+      environment:
+        description: 'Environment to run the workflow against'
+        type: environment
+        required: true
+        default: sbx
 
 permissions:
   contents: write

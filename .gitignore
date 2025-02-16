@@ -171,3 +171,6 @@ dist
 *.egg-info
 .mypy_cache
 *cache*
+
+# terraform
+.terraform/

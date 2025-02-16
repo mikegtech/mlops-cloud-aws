@@ -367,3 +367,101 @@ resource "github_actions_environment_variable" "ecr_repository_name" {
   variable_name = "ECR_REPOSITORY_NAME"
   value         = var.ecr_repository_name
 }
+
+module "mlops-data-catalog" {
+  source  = "terraform-aws-modules/s3-bucket/aws"
+  version = "~> 3.0"
+
+  bucket_prefix = "${local.name}-data-"
+  bucket        = "catalog-directory"
+  is_directory_bucket = true
+
+  availability_zone_id = data.aws_availability_zones.available.zone_ids[1]
+  server_side_encryption_configuration = {
+    rule = {
+      bucket_key_enabled = true # required for directory buckets
+      apply_server_side_encryption_by_default = {
+        kms_master_key_id = aws_kms_key.objects.arn
+        sse_algorithm     = "aws:kms"
+      }
+    }
+  }
+  lifecycle_rule = [
+    {
+      id     = "test"
+      status = "Enabled"
+      expiration = {
+        days = 7
+      }
+    },
+    {
+      id     = "logs"
+      status = "Enabled"
+      expiration = {
+        days = 5
+      }
+      filter = {
+        prefix                = "logs/"
+        object_size_less_than = 10
+      }
+    },
+    {
+      id     = "other"
+      status = "Enabled"
+      expiration = {
+        days = 2
+      }
+      filter = {
+        prefix = "other/"
+      }
+    }
+  ]
+  attach_policy = true
+  policy        = data.aws_iam_policy_document.bucket_policy.json
+}
+
+resource "aws_kms_key" "objects" {
+  description             = "KMS key is used to encrypt bucket objects"
+  deletion_window_in_days = 7
+}
+
+data "aws_iam_policy_document" "bucket_policy" {
+
+  statement {
+    sid    = "ReadWriteAccess"
+    effect = "Allow"
+
+    actions = [
+      "s3express:CreateSession",
+    ]
+
+    resources = [module.mlops-data-catalog.s3_directory_bucket_arn]
+
+    principals {
+      identifiers = [data.aws_caller_identity.current.account_id]
+      type        = "AWS"
+    }
+  }
+
+  statement {
+    sid    = "ReadOnlyAccess"
+    effect = "Allow"
+
+    actions = [
+      "s3express:CreateSession",
+    ]
+
+    resources = [module.mlops-data-catalog.s3_directory_bucket_arn]
+
+    principals {
+      identifiers = [data.aws_caller_identity.current.account_id]
+      type        = "AWS"
+    }
+
+    condition {
+      test     = "StringEquals"
+      values   = ["ReadOnly"]
+      variable = "s3express:SessionMode"
+    }
+  }
+}
