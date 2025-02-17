@@ -370,7 +370,7 @@ resource "github_actions_environment_variable" "ecr_repository_name" {
 
 module "mlops-data-catalog" {
   source  = "terraform-aws-modules/s3-bucket/aws"
-  version = "~> 3.0"
+  version = "~> 4.0"
 
   bucket_prefix = "${local.name}-data-"
   bucket        = "catalog-directory"
