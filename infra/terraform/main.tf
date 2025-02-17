@@ -52,7 +52,7 @@ resource "aws_service_discovery_http_namespace" "this" {
 module "multi_inventory_configurations_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
 
-  bucket = "${local.name}-data-catalog"
+  bucket = "${local.name}-data-catalog-${var.deploy_env}"
 
   force_destroy = true
 
@@ -170,7 +170,7 @@ module "kms" {
 module "inventory_destination_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
 
-  bucket                              = "inventory-destination-${random_pet.this.id}"
+  bucket                              = "inventory-destination-${var.deploy_env}-${random_pet.this.id}"
   force_destroy                       = true
   attach_policy                       = true
   attach_inventory_destination_policy = true
@@ -181,6 +181,6 @@ module "inventory_destination_bucket" {
 module "inventory_source_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
 
-  bucket        = "inventory-source-${random_pet.this.id}"
+  bucket        = "inventory-source-${var.deploy_env}-${random_pet.this.id}"
   force_destroy = true
 }
