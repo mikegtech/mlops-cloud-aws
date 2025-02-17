@@ -1,4 +1,4 @@
-bucket         = "terraform-remote-state-mlops-dev"
+bucket         = "terraform-remote-state-mlops-sbx"
 key            = "mlops/ecs_service/state.tfstate"
 region         = "us-east-1"
 encrypt        = "true"
