@@ -33,9 +33,6 @@ provider "github" {
 ################################################################################
 # Supporting Resources
 ################################################################################
-data "aws_ssm_parameter" "cert" {
-  name = "/base/certificateArn"
-}
 
 data "aws_caller_identity" "current" {}
 data "aws_availability_zones" "available" {}
