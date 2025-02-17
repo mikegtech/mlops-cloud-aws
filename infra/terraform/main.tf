@@ -58,7 +58,7 @@ module "mlops-data-catalog" {
 
   bucket_prefix = "${local.name}-data-"
   bucket        = "catalog-directory"
-  is_directory_bucket = true
+  is_directory_bucket = false
 
   availability_zone_id = data.aws_availability_zones.available.zone_ids[1]
   server_side_encryption_configuration = {
