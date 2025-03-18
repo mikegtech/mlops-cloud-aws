@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.61.0, < 6.0.0"
+      version = ">= 5.91.1, < 6.0.0"
     }
     github = {
       source  = "integrations/github"
@@ -50,7 +50,7 @@ resource "aws_service_discovery_http_namespace" "this" {
 }
 
 module "multi_inventory_configurations_bucket" {
-  source  = "terraform-aws-modules/s3-bucket/aws"
+  source = "terraform-aws-modules/s3-bucket/aws"
 
   bucket = "${local.name}-data-catalog-${var.deploy_env}"
 
@@ -168,7 +168,7 @@ module "kms" {
 }
 
 module "inventory_destination_bucket" {
-  source  = "terraform-aws-modules/s3-bucket/aws"
+  source = "terraform-aws-modules/s3-bucket/aws"
 
   bucket                              = "inventory-destination-${var.deploy_env}-${random_pet.this.id}"
   force_destroy                       = true
@@ -179,8 +179,131 @@ module "inventory_destination_bucket" {
 }
 
 module "inventory_source_bucket" {
-  source  = "terraform-aws-modules/s3-bucket/aws"
+  source = "terraform-aws-modules/s3-bucket/aws"
 
   bucket        = "inventory-source-${var.deploy_env}-${random_pet.this.id}"
   force_destroy = true
+}
+
+#---------------------------------------------------------------
+# Create the dedicated table bucket for storing queryable metadata
+#---------------------------------------------------------------
+module "multi_inventory_queryable_meta_configurations_bucket" {
+  source = "terraform-aws-modules/s3-bucket/aws"
+
+  bucket = "${local.name}-data-catalog-metadata-bucket-${var.deploy_env}"
+  versioning = {
+    status     = true
+    mfa_delete = false
+  }
+  server_side_encryption_configuration = {
+    rule = {
+      apply_server_side_encryption_by_default = {
+        kms_master_key_id = aws_kms_key.objects.arn
+        sse_algorithm     = "aws:kms"
+      }
+    }
+  }
+}
+
+####################################
+# Define a Namespace for Metadata  #
+####################################
+
+resource "aws_s3tables_namespace" "metadata_namespace" {
+  namespace        = "${local.name}-data-catalog-metadata-namespace"
+  table_bucket_arn = multi_inventory_queryable_meta_configurations_bucket.metadata_bucket.arn
+}
+
+####################################
+# Create the Queryable Metadata Table
+####################################
+
+resource "aws_s3tables_table" "metadata_table" {
+  name             = "${local.name}-data-catalog-queryable-${var.deploy_env}"
+  namespace        = aws_s3tables_namespace.metadata_namespace.namespace
+  table_bucket_arn = aws_s3tables_namespace.metadata_namespace.table_bucket_arn
+  format           = "ICEBERG"
+}
+
+####################################
+# Source Data Bucket Configuration #
+####################################
+module "multi_inventory_queryable_configurations_bucket" {
+  source = "terraform-aws-modules/s3-bucket/aws"
+
+  bucket = "${local.name}-data-catalog-bucket-${var.deploy_env}"
+  versioning = {
+    status     = true
+    mfa_delete = false
+  }
+  server_side_encryption_configuration = {
+    rule = {
+      apply_server_side_encryption_by_default = {
+        kms_master_key_id = aws_kms_key.objects.arn
+        sse_algorithm     = "aws:kms"
+      }
+    }
+  }
+}
+
+# Enable S3 Metadata for the source bucket
+resource "aws_s3_bucket_metadata" "source_bucket_metadata" {
+  bucket = multi_inventory_queryable_configurations_bucket.s3_bucket_id
+
+  metadata_configuration {
+    metadata_table {
+      table_arn = aws_s3tables_table.metadata_table.arn
+      enabled   = true
+    }
+  }
+}
+
+# IAM role for S3 to write to metadata tables
+resource "aws_iam_role" "s3_metadata_role" {
+  name = "s3-metadata-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "s3.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# IAM policy to allow S3 to write to metadata tables
+resource "aws_iam_role_policy" "s3_metadata_policy" {
+  name = "s3-metadata-policy"
+  role = aws_iam_role.s3_metadata_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3tables_table_bucket.metadata_bucket.arn,
+          "${aws_s3tables_table_bucket.metadata_bucket.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3tables:WriteTable"
+        ]
+        Resource = aws_s3tables_table.metadata_table.arn
+      }
+    ]
+  })
 }
